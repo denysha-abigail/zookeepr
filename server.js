@@ -71,16 +71,33 @@ function createNewAnimal(body, animalsArray) {
     animalsArray.push(animal);
     // synchronous version of fs.writeFile() and doesn't require a callback function (however, if we were writing to a much larger data set, the asynchronouse fs.writeFile() would be better)
     // path.join() joins the value of __dirname (which represents the directory of the file we execute the code in) with the path to the animals.json file to write our animals.json file in the data subdirectory
-    fs.writeFileSync(path.join(__dirname, './data/animals.json'),
+    fs.writeFileSync(
+        path.join(__dirname, './data/animals.json'),
     // to save the JavaScript array as JSON -> JSON.stringify; null and 2 are to keep the data formatted (null -> means we don't want to edit any or our existing data; 2 -> indicates we want to create white space between our values to make it more readable)
     // null and 2 could be left out and the animals.json file would still work but would be incredibly hard to read
-    JSON.stringify({ animas: animalsArray }, null, 2)
-    );
+        JSON.stringify({ animals: animalsArray }, null, 2)
+      );
 
     // return finished code to post route for response
     // now when we POST a new animal, we'll add it to the imported animals array from the animals.json file
     return animal;
-}
+};
+
+function validateAnimal(animal) {
+    if (!animal.name || typeof animal.name !== 'string') {
+      return false;
+    }
+    if (!animal.species || typeof animal.species !== 'string') {
+      return false;
+    }
+    if (!animal.diet || typeof animal.diet !== 'string') {
+      return false;
+    }
+    if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
+      return false;
+    }
+    return true;
+  }
 
 // WE MAKE A GET REQUEST EVERY TIME WE ENTER A URL INTO THE BROWSER AND PRESS THE ENTER KEY TO SEE WHAT WILL COME BACK IN RESPONSE; GET is the default request method when using Fetch API
 
@@ -120,12 +137,18 @@ app.post('/api/animals', (req, res) => {
     // the length property is always going to be one number ahead of the last index of the array
     req.body.id = animals.length.toString();
 
-    // add animal to json file and animals array in this function
-    const animal = createNewAnimal(req.body, animals);
+    // if any data in req.body is incorrect, send 400 error back
+    if (!validateAnimal(req.body)) {
+        // anything in the 400 range means that it's a user error and not a server error
+        res.status(400).send('The animal is not properly formatted.');
+    } else {
+        // add animal to json file and animals array in this function
+        const animal = createNewAnimal(req.body, animals);
 
-    // req.body is where our incoming content will be
-    // with POST requests, we can package up data (typically as an object) and send it to the server; the req.body property is where we can access that data on the server side and do something with it
-    res.json(animal);
+        // req.body is where our incoming content will be
+        // with POST requests, we can package up data (typically as an object) and send it to the server; the req.body property is where we can access that data on the server side and do something with it
+        res.json(animal);
+    }   
 });
 
 // to make our server listen
