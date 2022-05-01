@@ -42,6 +42,11 @@ function filterByQuery(query, animalsArray) {
     return filteredResults;
 }
 
+function findById(id, animalsArray) {
+    const result = animalsArray.filter(animal => animal.id === id)[0];
+    return result;
+}
+
 // to add route that the front-end can request data from
 // the get() method requires two arguments; 1st -> string that describes the route the client will have to fetch from; 2nd -> callback function that will execute every time that route is accessed with a GET request
 app.get('/api/animals', (req, res) => {
@@ -55,7 +60,21 @@ app.get('/api/animals', (req, res) => {
     res.json(results);
 });
 
+// unlike the query object, the param object needs to be defined in the route path, with <route>/:parameterName>, in this case, /api/animals/:id
+// a param route MUST come after the other GET route
+// this route should only return a single animal because the id is unique and there won't be any query on a single animal; this is why we do not use the previous filterByQuery() function instead
+// req.query is multifaceted, often combining multiple parameters, whereas req.param is specific to a single property, often intended to retrieve a single record
+app.get('/api/animals/:id', (req, res) => {
+    const result = findById(req.params.id, animals);
+    if (result) {
+       res.json(result); 
+    } else {
+        // if no record exists for the animal being searched for, the client receives a 404 error
+        res.sendStatus(404);
+    }  
+});
+
 // to make our server listen
 app.listen(PORT, () => {
     console.log(`API server now on port ${PORT}!`);
-})
+});
