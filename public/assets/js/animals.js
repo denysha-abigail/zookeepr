@@ -22,6 +22,7 @@ const printResults = resultArr => {
   $displayArea.innerHTML = animalHTML.join('');
 };
 
+// if nothing is passed into formData, then the request will simply GET /appi/animals; this will be what runs on load
 const getAnimals = (formData = {}) => {
   let queryUrl = '/api/animals?';
 
@@ -31,8 +32,23 @@ const getAnimals = (formData = {}) => {
 
   console.log(queryUrl);
 
+  fetch(queryUrl)
+  .then(response => {
+    if (!response.ok) {
+      // this part checks for any HTTP status code that signifies an error; if there's an error
+      return alert('Error: ' + response.statusText);
+    }
+    // if everything is ok, we still have to use the .json() method to parse our response into readable JSON format
+    return response.json();
+  })
+  .then(animalData => {
+    console.log(animalData);
+    // when that's all done, we send our array of animal data to the printResults() function, where it generates cards for each animal and prints them to the page
+    printResults(animalData);
+  });
 };
 
+// this function will gather all of the form input data and package it as an object to send to the getAnimals() function as the formData argument; from there, the object formData will be passed through the Object.entries() method to create query parameters
 const handleGetAnimalsSubmit = event => {
   event.preventDefault();
   const dietRadioHTML = $animalForm.querySelectorAll('[name="diet"]');
