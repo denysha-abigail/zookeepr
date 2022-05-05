@@ -1,10 +1,11 @@
 // npm start turns on your server
 
-const express = require('express');
-const { animals } = require('./data/animals');
 const fs = require('fs');
 // path is another module built into Node.js API that provides utilities for working with file and directory paths; it makes working with our file system a little more predictable, especially when working with production environments, such as Heroku
 const path = require('path');
+const express = require('express');
+const { animals } = require('./data/animals');
+
 
 const PORT = process.env.PORT || 3001;
 
@@ -22,6 +23,11 @@ app.use(express.urlencoded({ extended: true }));
 // parse incoming JSON data
 // the express.json takes incoming POST data in the form of JSON and parses it into the req.body JavaScript object
 app.use(express.json());
+// middleware that instructs the server to make certain files readily available and to not gate it behind a server endpoint
+// express.static() works by providing a file path to a location in our application (in this case, the public folder) and instruct the server to make these files static resources; this means that all of our front-end code can now be accessed without having a specific server endpoint created for it
+// every time we create a server that will serve a front end as well as JSON data, we'll always want to use this middleware
+// used to load corresponding resources properly
+app.use(express.static('public'));
 
 // this function will take in req.query as an argument and filter through the animals accordingly, returning the new filtered array
 // the filterByQuery() method also ensures that query.personalityTraits is always an array before the .forEach() method executes
@@ -37,15 +43,15 @@ function filterByQuery(query, animalsArray) {
         } else {
             personalityTraitsArray = query.personalityTraits;
         }
-    // loop through each trait in the personalityTraits array:
-    personalityTraitsArray.forEach(trait => {
-        // check the trait against each animal in the filteredResults array; remember, it is initially a copy of the animalsArray, but here we're updating it for each trait in the .forEach() loop
-        // for each trait being targeted by the filter, the filteredResults array will then contain only the entries that contain the trait, so at the end we'll have an array of animals that have every one of the traits when the .forEach() loop is finished
-        filteredResults = filteredResults.filter(
-            animal => animal.personalityTraits.indexOf(trait) !== -1
-        );
-    });
-}
+        // loop through each trait in the personalityTraits array:
+        personalityTraitsArray.forEach(trait => {
+            // check the trait against each animal in the filteredResults array; remember, it is initially a copy of the animalsArray, but here we're updating it for each trait in the .forEach() loop
+            // for each trait being targeted by the filter, the filteredResults array will then contain only the entries that contain the trait, so at the end we'll have an array of animals that have every one of the traits when the .forEach() loop is finished
+            filteredResults = filteredResults.filter(
+                animal => animal.personalityTraits.indexOf(trait) !== -1
+            );
+        });
+    }
     if (query.diet) {
         filteredResults = filteredResults.filter(animal => animal.diet === query.diet);
     }
@@ -73,10 +79,10 @@ function createNewAnimal(body, animalsArray) {
     // path.join() joins the value of __dirname (which represents the directory of the file we execute the code in) with the path to the animals.json file to write our animals.json file in the data subdirectory
     fs.writeFileSync(
         path.join(__dirname, './data/animals.json'),
-    // to save the JavaScript array as JSON -> JSON.stringify; null and 2 are to keep the data formatted (null -> means we don't want to edit any or our existing data; 2 -> indicates we want to create white space between our values to make it more readable)
-    // null and 2 could be left out and the animals.json file would still work but would be incredibly hard to read
+        // to save the JavaScript array as JSON -> JSON.stringify; null and 2 are to keep the data formatted (null -> means we don't want to edit any or our existing data; 2 -> indicates we want to create white space between our values to make it more readable)
+        // null and 2 could be left out and the animals.json file would still work but would be incredibly hard to read
         JSON.stringify({ animals: animalsArray }, null, 2)
-      );
+    );
 
     // return finished code to post route for response
     // now when we POST a new animal, we'll add it to the imported animals array from the animals.json file
@@ -85,19 +91,19 @@ function createNewAnimal(body, animalsArray) {
 
 function validateAnimal(animal) {
     if (!animal.name || typeof animal.name !== 'string') {
-      return false;
+        return false;
     }
     if (!animal.species || typeof animal.species !== 'string') {
-      return false;
+        return false;
     }
     if (!animal.diet || typeof animal.diet !== 'string') {
-      return false;
+        return false;
     }
     if (!animal.personalityTraits || !Array.isArray(animal.personalityTraits)) {
-      return false;
+        return false;
     }
     return true;
-  }
+}
 
 // WE MAKE A GET REQUEST EVERY TIME WE ENTER A URL INTO THE BROWSER AND PRESS THE ENTER KEY TO SEE WHAT WILL COME BACK IN RESPONSE; GET is the default request method when using Fetch API
 
@@ -109,7 +115,7 @@ app.get('/api/animals', (req, res) => {
         results = filterByQuery(req.query, results);
     }
     // using send() method from the res parameter (response) to send the string Hello! to our client
-            // res.send('Hello!');
+    // res.send('Hello!');
     // the send() method is great for short messages, but if we want to send lots of JSON, simply change send to json
     res.json(results);
 });
@@ -122,11 +128,11 @@ app.get('/api/animals', (req, res) => {
 app.get('/api/animals/:id', (req, res) => {
     const result = findById(req.params.id, animals);
     if (result) {
-       res.json(result); 
+        res.json(result);
     } else {
         // if no record exists for the animal being searched for, the client receives a 404 error
-        res.sendStatus(404);
-    }  
+        res.send(404);
+    }
 });
 
 // sets up route on server that accepts data to be used or stored server-side
@@ -148,7 +154,29 @@ app.post('/api/animals', (req, res) => {
         // req.body is where our incoming content will be
         // with POST requests, we can package up data (typically as an object) and send it to the server; the req.body property is where we can access that data on the server side and do something with it
         res.json(animal);
-    }   
+    }
+});
+
+// the '/' brings us to the root route of the server
+// unlike most GET and POST routes that deal with creating or returning JSON data, this GET route only has the job of responding with an HTML page to display in the browser
+app.get('/', (req, res) => {
+    // specifies where to find the file we want our server to read and send back to the client
+    res.sendFile(path.join(__dirname, './public/index.html'));
+});
+
+// this route will take us to /animals; we can assume that a route that has the term api in it will deal in transference of JSON data, whereas a more nomral-looking endpoint such as /animals should serve an HTML page
+app.get('/animals', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/animals.html'));
+});
+
+app.get('/zookeepers', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/zookeepers.html'));
+});
+
+// the * will act as a wildcard, meaning any route that wasn't previously defined will fall under this request and will receive the homepage as the response; essentially this will re-direct the user to the homepage if the client makes a request for a route that doesn't exist
+// the * route should always come last! Otherwise it will take precedence over named routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, './public/index.html'));
 });
 
 // to make our server listen
