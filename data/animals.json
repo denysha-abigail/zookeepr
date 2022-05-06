@@ -108,6 +108,15 @@
         "hungry"
       ],
       "id": "10"
+    },
+    {
+      "name": "Luna",
+      "species": "Lion",
+      "diet": "carnivore",
+      "personalityTraits": [
+        "hungry"
+      ],
+      "id": "11"
     }
   ]
 }
